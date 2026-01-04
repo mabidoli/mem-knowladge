@@ -198,12 +198,12 @@ func (s *MemoryService) Recall(ctx context.Context, query string) ([]Memory, err
 
 ## Action Items
 
-- [ ] Decide on default embedding model
-- [ ] Update Neo4j vector index dimensions to match chosen model
-- [ ] Implement `EmbeddingProvider` interface
-- [ ] Add Ollama integration for local embeddings
-- [ ] Design caching strategy for repeated queries
-- [ ] Add `embeddingModel` field to Memory node schema
+- [x] Decide on default embedding model → **Ollama/nomic-embed-text (768d)**
+- [x] Update Neo4j vector index dimensions to match chosen model → **768d in schema**
+- [x] Implement `EmbeddingProvider` interface → **`internal/embedding/provider.go`**
+- [x] Add Ollama integration for local embeddings → **`internal/embedding/ollama.go`**
+- [x] Design caching strategy for repeated queries → **LRU cache in Service**
+- [x] Add `embeddingModel` field to Memory node schema → **`internal/storage/neo4j.go`**
 - [ ] Create migration script for model upgrades
 - [ ] Benchmark latency with chosen model(s)
 - [ ] Document cost projections for different scale scenarios
