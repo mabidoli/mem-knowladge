@@ -1,0 +1,86 @@
+services:
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: ums-neo4j
+    ports:
+      - "7474:7474"  # HTTP Browser
+      - "7687:7687"  # Bolt protocol
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      # Heap sizing: 50% of available RAM for graph operations
+      - NEO4J_server_memory_heap_initial__size=1G
+      - NEO4J_server_memory_heap_max__size=1G
+      # Page cache for vector index performance
+      - NEO4J_server_memory_pagecache_size=512M
+      # Enable APOC procedures
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ums-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # For CPU-only, remove the deploy section above
+
+  # Initialize Ollama with embedding model
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ums-ollama-init
+    depends_on:
+      ollama:
+        condition: service_started
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 5
+        ollama pull nomic-embed-text
+        echo "Embedding model ready"
+    environment:
+      - OLLAMA_HOST=ollama:11434
+
+  # Optional: Monitoring stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ums-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ums-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    profiles:
+      - monitoring
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  ollama_models:
+  grafana_data:
